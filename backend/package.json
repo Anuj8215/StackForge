@@ -1,0 +1,11 @@
+{
+  "name": "stackforge-backend",
+  "version": "0.1.0",
+  "description": "StackForge backend placeholder",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo 'placeholder tests' && exit 0",
+    "lint": "echo 'placeholder lint' && exit 0"
+  }
+}

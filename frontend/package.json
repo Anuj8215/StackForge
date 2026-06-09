@@ -1,0 +1,10 @@
+{
+  "name": "stackforge-frontend",
+  "version": "0.1.0",
+  "description": "StackForge frontend placeholder",
+  "scripts": {
+    "build": "mkdir -p build && echo '<html><body><h1>StackForge</h1></body></html>' > build/index.html",
+    "test": "echo 'placeholder tests' && exit 0",
+    "lint": "echo 'placeholder lint' && exit 0"
+  }
+}
