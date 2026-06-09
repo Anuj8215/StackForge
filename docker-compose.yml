@@ -1,0 +1,116 @@
+version: "3.9"
+
+networks:
+  stackforge-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+
+services:
+
+  # Frontend (React -> Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: stackforge-frontend
+    restart: unless-stopped
+    networks:
+      - stackforge-net
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Backend (Node.js + Express)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: stackforge-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: stackforge
+      DB_USER: stackforge
+      DB_PASSWORD: stackforge_pass
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - stackforge-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: stackforge-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - stackforge-net
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL 14
+  postgres:
+    image: postgres:14-alpine
+    container_name: stackforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: stackforge
+      POSTGRES_USER: stackforge
+      POSTGRES_PASSWORD: stackforge_pass
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - stackforge-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stackforge -d stackforge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Redis 7
+  redis:
+    image: redis:7-alpine
+    container_name: stackforge-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - stackforge-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
