@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stackforge
+  labels:
+    app: stackforge
+    managed-by: argocd
