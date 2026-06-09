@@ -1,0 +1,67 @@
+# ── InfluxDB Deployment (receives k6 load test metrics) ───────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+  namespace: stackforge
+  labels:
+    app: influxdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      containers:
+        - name: influxdb
+          image: influxdb:1.8-alpine
+          ports:
+            - containerPort: 8086
+          env:
+            - name: INFLUXDB_DB
+              value: k6
+            - name: INFLUXDB_HTTP_AUTH_ENABLED
+              value: "false"
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8086
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8086
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/influxdb
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 200m
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+# ── InfluxDB Service ───────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb-svc
+  namespace: stackforge
+spec:
+  selector:
+    app: influxdb
+  ports:
+    - port: 8086
+      targetPort: 8086
+  type: ClusterIP
