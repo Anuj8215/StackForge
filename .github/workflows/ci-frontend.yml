@@ -1,0 +1,46 @@
+name: CI - Frontend
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/ci-frontend.yml'
+
+jobs:
+  ci-frontend:
+    name: Frontend CI (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build check (Vite)
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Docker build check
+        run: |
+          docker build -t stackforge-frontend:ci-check ./frontend
+          docker rmi stackforge-frontend:ci-check
