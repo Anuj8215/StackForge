@@ -1,0 +1,47 @@
+name: CI - Backend
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+
+jobs:
+  ci-backend:
+    name: Backend CI (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Syntax check
+        working-directory: ./backend
+        run: node --check server.js
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: Docker build check
+        run: |
+          docker build -t stackforge-backend:ci-check ./backend
+          docker rmi stackforge-backend:ci-check
