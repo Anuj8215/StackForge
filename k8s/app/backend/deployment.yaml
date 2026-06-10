@@ -1,4 +1,4 @@
-# ── Backend Deployment ─────────────────────────────────────────────────────
+# Backend Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,7 +25,7 @@ spec:
         - name: backend
           image: anujpawar8215/stackforge-backend:latest
           ports:
-            - containerPort: 5000
+            - containerPort: 4000
           envFrom:
             - configMapRef:
                 name: backend-config
@@ -34,14 +34,14 @@ spec:
           livenessProbe:
             httpGet:
               path: /api/health
-              port: 5000
+              port: 4000
             initialDelaySeconds: 15
             periodSeconds: 10
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /api/health
-              port: 5000
+              port: 4000
             initialDelaySeconds: 10
             periodSeconds: 5
             failureThreshold: 3
@@ -53,7 +53,7 @@ spec:
               memory: 256Mi
               cpu: 200m
 ---
-# ── Backend Service ────────────────────────────────────────────────────────
+# Backend Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -63,6 +63,6 @@ spec:
   selector:
     app: backend
   ports:
-    - port: 5000
-      targetPort: 5000
+    - port: 4000
+      targetPort: 4000
   type: ClusterIP

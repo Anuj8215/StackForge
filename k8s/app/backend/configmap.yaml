@@ -5,9 +5,10 @@ metadata:
   namespace: stackforge
 data:
   NODE_ENV: production
-  PORT: "5000"
-  DB_HOST: postgres-svc
-  DB_PORT: "5432"
-  DB_NAME: stackforge
+  PORT: "4000"
+  TOTP_ISSUER: SpeaksyAuth
+  TOTP_DIGITS: "6"
+  TOTP_STEP: "30"
+  JWT_EXPIRATION: 7d
   REDIS_HOST: redis-svc
   REDIS_PORT: "6379"

@@ -1,15 +1,14 @@
-
 networks:
   stackforge-net:
     driver: bridge
 
 volumes:
-  postgres-data:
+  mongo-data:
   redis-data:
 
 services:
 
-  # Frontend (React -> Nginx)
+  # Frontend (React + Vite -> Nginx)
   frontend:
     build:
       context: ./frontend
@@ -23,13 +22,13 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:80"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
 
-  # Backend (Node.js + Express)
+  # Backend (Node.js + Express, port 4000)
   backend:
     build:
       context: ./backend
@@ -39,23 +38,24 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      PORT: 5000
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: stackforge
-      DB_USER: stackforge
-      DB_PASSWORD: stackforge_pass
+      PORT: 4000
+      MONGO_URI: mongodb://mongo:27017/speaksyauth
+      JWT_SECRET: change_me_in_production
+      JWT_EXPIRATION: 7d
+      TOTP_ISSUER: SpeaksyAuth
+      TOTP_DIGITS: 6
+      TOTP_STEP: 30
       REDIS_HOST: redis
       REDIS_PORT: 6379
     networks:
       - stackforge-net
     depends_on:
-      postgres:
+      mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:5000/api/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:4000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -78,25 +78,23 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # PostgreSQL 14
-  postgres:
-    image: postgres:14-alpine
-    container_name: stackforge-postgres
+  # MongoDB
+  mongo:
+    image: mongo:7-jammy
+    container_name: stackforge-mongo
     restart: unless-stopped
     environment:
-      POSTGRES_DB: stackforge
-      POSTGRES_USER: stackforge
-      POSTGRES_PASSWORD: stackforge_pass
+      MONGO_INITDB_DATABASE: speaksyauth
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - mongo-data:/data/db
     networks:
       - stackforge-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stackforge -d stackforge"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 15s
 
   # Redis 7
   redis:

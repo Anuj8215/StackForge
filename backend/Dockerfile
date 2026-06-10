@@ -4,23 +4,17 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Stage 2: Build (uncomment if using TypeScript)
+# Stage 2: Copy source
 FROM deps AS builder
 WORKDIR /app
 COPY . .
-# RUN npm run build
 
-# Stage 3: Production image (only prod deps + source)
+# Stage 3: Production image
 FROM node:20-alpine AS production
 WORKDIR /app
-
 COPY package*.json ./
 RUN npm ci --omit=dev
-
 COPY --from=builder /app .
-
-EXPOSE 5000
-
+EXPOSE 4000
 USER node
-
-CMD ["node", "index.js"]
+CMD ["node", "server.js"]
